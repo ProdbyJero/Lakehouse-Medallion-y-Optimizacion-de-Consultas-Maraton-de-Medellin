@@ -1,8 +1,26 @@
-﻿-- ============================================================
+﻿-- Entorno academico con datos sinteticos.
+-- Se permiten nulos en tiempo y fecha para evaluar
+-- la limpieza de datos en la capa Silver.
+--
+-- Cada ejecucion reinicia exclusivamente las tres
+-- tablas del proyecto y vuelve a cargar los CSV.
+-- ============================================================
+
+
+-- ============================================================
+-- 0. REINICIAR LAS TABLAS DEL PROYECTO
+-- ============================================================
+
+DROP TABLE IF EXISTS pasos;
+DROP TABLE IF EXISTS participantes;
+DROP TABLE IF EXISTS puntos_control;
+
+
+-- ============================================================
 -- 1. PARTICIPANTES
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS participantes (
+CREATE TABLE participantes (
     id_participante SERIAL PRIMARY KEY,
     chip_id VARCHAR(50) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
@@ -18,7 +36,7 @@ CREATE TABLE IF NOT EXISTS participantes (
 -- 2. PUNTOS DE CONTROL
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS puntos_control (
+CREATE TABLE puntos_control (
     id_punto SERIAL PRIMARY KEY,
     nombre VARCHAR(20) NOT NULL UNIQUE,
     distancia_km NUMERIC(6,3) NOT NULL
@@ -29,16 +47,18 @@ CREATE TABLE IF NOT EXISTS puntos_control (
 -- 3. REGISTROS RFID
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS pasos (
+CREATE TABLE pasos (
     id_paso BIGSERIAL PRIMARY KEY,
 
     id_participante INT NOT NULL,
     id_punto INT NOT NULL,
 
-    tiempo_acumulado_segundos INT NOT NULL,
+    -- Permite tiempos nulos para simular datos incompletos.
+    -- Tambien admite tiempos negativos o iguales a cero.
+    tiempo_acumulado_segundos INT,
 
-    fecha_registro TIMESTAMP NOT NULL
-        DEFAULT CURRENT_TIMESTAMP,
+    -- Permite fechas nulas para simular lecturas incompletas.
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_pasos_participante
         FOREIGN KEY (id_participante)
@@ -52,6 +72,10 @@ CREATE TABLE IF NOT EXISTS pasos (
         UNIQUE (id_participante, id_punto)
 );
 
+
+-- ============================================================
+-- 4. CATALOGO DE PUNTOS DE CONTROL
+-- ============================================================
 
 INSERT INTO puntos_control (
     id_punto,

@@ -66,7 +66,27 @@ def generar_csv():
                                  * rng.uniform(0.97, 1.03))
                         tiempo += int(ritmo * 60 * (distancia - anterior))
                         fecha = inicio + timedelta(seconds=tiempo)
-                        ws.writerow([pid, punto_id, tiempo, fecha.strftime('%Y-%m-%d %H:%M:%S')])
+                        # Simular anomalías en el primer checkpoint (K5).
+                        # Los registros restantes conservan sus valores válidos.
+                        tiempo_csv = tiempo
+                        fecha_csv = fecha.strftime('%Y-%m-%d %H:%M:%S')
+
+                        if punto_id == 1:
+                            if pid % 1000 == 0:
+                                tiempo_csv = -10
+                            elif pid % 1000 == 500:
+                                tiempo_csv = 0
+                            elif pid % 1000 == 250:
+                                tiempo_csv = None
+                            elif pid % 1000 == 750:
+                                fecha_csv = None
+
+                        ws.writerow([
+                            pid,
+                            punto_id,
+                            tiempo_csv,
+                            fecha_csv
+                        ])
                         total_pasos += 1
                         anterior = distancia
                     pid += 1
@@ -74,20 +94,7 @@ def generar_csv():
 
 
 def verificar_archivos():
-    presentes = {name: path.is_file() for name, path in FILES.items()}
-    if not any(presentes.values()):
-        generar_csv()
-    elif not all(presentes.values()):
-        faltantes = [name for name, existe in presentes.items() if not existe]
-        raise RuntimeError(
-            f'Conjunto CSV incompleto: faltan {faltantes}. '
-            'Recupéralos del respaldo del Taller 2. Para generar un conjunto nuevo '
-            'con IDs coherentes, mueve primero los CSV existentes a una carpeta de respaldo '
-            'y vuelve a ejecutar el script.'
-        )
-    else:
-        print('Se utilizarán los tres CSV existentes, sin modificarlos.')
-
+    generar_csv()
     conteos = {}
     for name, path in FILES.items():
         with path.open('r', newline='', encoding='utf-8-sig') as f:
@@ -216,6 +223,7 @@ def cargar_postgres(con, esperados):
 
 def main():
     esperados = verificar_archivos()
+    
     with conectar() as con:
         cargar_postgres(con, esperados)
         with con.cursor() as cur:
